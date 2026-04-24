@@ -7,6 +7,7 @@ from loguru import logger
 from .state import AgentState
 from .config import settings
 from .rag_node import RAGNode
+from .vlm_node import VLMNode
 from ..skills.loader import SkillLoader
 from ..security.gateway import SecurityGateway
 
@@ -15,8 +16,9 @@ class EdgeBrainEngine:
         self.skill_loader = SkillLoader()
         self.security_gateway = SecurityGateway()
         self.rag_node = RAGNode(data_dir=os.path.join(settings.project_root, "data", "knowledge_base"))
+        self.vlm_node = VLMNode()
         self.graph = self._build_graph()
-        logger.info("EdgeBrain Engine initialized with RAG and Declarative Skills.")
+        logger.info("EdgeBrain Engine initialized with RAG, VLM and Declarative Skills.")
 
     def _plan_node(self, state: AgentState) -> dict:
         """规划节点：分析意图并决定下一步动作"""
@@ -70,6 +72,11 @@ class EdgeBrainEngine:
             logger.error(f"Skill execution failed: {e}")
             return {"error_message": str(e)}
 
+    def _vlm_node(self, state: AgentState) -> dict:
+        """视觉节点：分析图像内容"""
+        logger.info("VLM node executed.")
+        return self.vlm_node.analyze(state)
+
     def _respond_node(self, state: AgentState) -> dict:
         """响应节点：生成最终回复"""
         logger.info("Response node executed.")
@@ -81,12 +88,18 @@ class EdgeBrainEngine:
         
         return {"messages": [{"role": "assistant", "content": response_text}]}
 
-    def _route_logic(self, state: AgentState) -> Literal["retrieve", "execute", "respond"]:
+    def _route_logic(self, state: AgentState) -> Literal["retrieve", "execute", "respond", "vlm"]:
         """路由逻辑"""
+        # 优先处理多模态输入
+        if state.get("image_path"):
+            return "vlm"
+        
         next_action = state.get('next_action', 'respond')
         logger.info(f"Routing decision: {next_action}")
         if next_action == "execute":
             return "execute"
+        elif next_action == "retrieve":
+            return "retrieve"
         return "respond"
 
     def _build_graph(self) -> StateGraph:
@@ -96,12 +109,14 @@ class EdgeBrainEngine:
         workflow.add_node("plan", self._plan_node)
         workflow.add_node("retrieve", self._retrieve_node)
         workflow.add_node("execute", self._execute_node)
+        workflow.add_node("vlm", self._vlm_node)
         workflow.add_node("respond", self._respond_node)
         
         workflow.set_entry_point("plan")
         workflow.add_conditional_edges("plan", self._route_logic)
         workflow.add_edge("retrieve", "respond")
         workflow.add_edge("execute", "respond")
+        workflow.add_edge("vlm", "respond")
         
         return workflow.compile()
 

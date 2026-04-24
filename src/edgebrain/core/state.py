@@ -28,6 +28,10 @@ class AgentState(TypedDict):
     
     # Multimodal inputs (Image paths or base64)
     visual_input: Optional[List[str]]
+    image_path: Optional[str]  # Single image path for quick VLM analysis
+    
+    # VLM Analysis results
+    vlm_output: Optional[str]
     
     # System status
     current_node: str
