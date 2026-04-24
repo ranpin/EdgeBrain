@@ -7,9 +7,10 @@ import base64
 import requests
 from typing import Optional, Dict, Any
 from src.edgebrain.core.state import AgentState
+from src.edgebrain.config import VLM_MODEL_NAME, OLLAMA_URL
 
 class VLMNode:
-    def __init__(self, model_name: str = "qwen2.5-vl:7b", ollama_url: str = "http://localhost:11434"):
+    def __init__(self, model_name: str = VLM_MODEL_NAME, ollama_url: str = OLLAMA_URL):
         self.model_name = model_name
         self.ollama_url = ollama_url
         print(f"[VLMNode] Initialized with model: {model_name} at {ollama_url}")

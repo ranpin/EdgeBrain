@@ -5,13 +5,20 @@ from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageCon
 from llama_index.vector_stores.chroma import ChromaVectorStore
 import chromadb
 from loguru import logger
+from src.edgebrain.config import (
+    OLLAMA_URL, 
+    LLM_MODEL_NAME, 
+    EMBEDDING_MODEL_NAME, 
+    CHROMA_PERSIST_DIR, 
+    KNOWLEDGE_BASE_DIR
+)
 
 class RAGNode:
     """
     EdgeBrain RAG 检索节点
     支持 Ollama 在线模式与本地离线回退模式
     """
-    def __init__(self, data_dir: str = "./data", persist_dir: str = "./storage", model_name: str = "qwen2.5:7b"):
+    def __init__(self, data_dir: str = KNOWLEDGE_BASE_DIR, persist_dir: str = CHROMA_PERSIST_DIR):
         self.data_dir = data_dir
         self.persist_dir = persist_dir
         self.model_name = model_name
@@ -36,9 +43,9 @@ class RAGNode:
                 from llama_index.llms.ollama import Ollama
                 from llama_index.embeddings.ollama import OllamaEmbedding
                 # 使用真实的 Embedding 模型和 LLM
-                Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
-                Settings.llm = Ollama(model="qwen2.5:0.5b", request_timeout=120.0)
-                logger.info(f"RAG Mode: Ollama Online (LLM: qwen2.5:0.5b, Embed: nomic-embed-text)")
+                Settings.embed_model = OllamaEmbedding(model_name=EMBEDDING_MODEL_NAME)
+                Settings.llm = Ollama(model=LLM_MODEL_NAME, request_timeout=120.0)
+                logger.info(f"RAG Mode: Ollama Online (LLM: {LLM_MODEL_NAME}, Embed: {EMBEDDING_MODEL_NAME})")
             else:
                 logger.warning("Ollama not accessible. Falling back to offline mode.")
                 from llama_index.core.embeddings import MockEmbedding
