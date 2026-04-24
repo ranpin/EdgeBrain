@@ -49,6 +49,9 @@ dependencies = [
     "pillow>=10.0.0",
     "opencv-python-headless>=4.8.0",
     
+    # --- System Monitoring ---
+    "psutil>=5.9.0",
+    
     # --- Networking & Tokenization ---
     "requests>=2.31.0",
     "tiktoken>=0.5.0",

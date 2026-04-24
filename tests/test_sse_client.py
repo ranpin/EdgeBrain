@@ -1,6 +1,8 @@
 import httpx
 import asyncio
+import pytest
 
+@pytest.mark.asyncio
 async def test_sse_stream():
     url = "http://127.0.0.1:8000/stream"
     params = {"q": "帮我分析一下当前系统状态"}
