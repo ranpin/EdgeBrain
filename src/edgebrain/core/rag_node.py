@@ -35,9 +35,10 @@ class RAGNode:
             if self._check_ollama():
                 from llama_index.llms.ollama import Ollama
                 from llama_index.embeddings.ollama import OllamaEmbedding
-                Settings.llm = Ollama(model=self.model_name, request_timeout=120.0)
+                # 使用真实的 Embedding 模型和 LLM
                 Settings.embed_model = OllamaEmbedding(model_name="nomic-embed-text")
-                logger.info("RAG Mode: Ollama (Online)")
+                Settings.llm = Ollama(model="qwen2.5:0.5b", request_timeout=120.0)
+                logger.info(f"RAG Mode: Ollama Online (LLM: qwen2.5:0.5b, Embed: nomic-embed-text)")
             else:
                 logger.warning("Ollama not accessible. Falling back to offline mode.")
                 from llama_index.core.embeddings import MockEmbedding
@@ -47,30 +48,20 @@ class RAGNode:
                 logger.info("RAG Mode: Offline (MockEmbedding 1536-dim)")
 
             db = chromadb.PersistentClient(path=self.persist_dir)
-            
-            # 检查并处理集合维度冲突
             collection_name = "edgebrain_knowledge"
-            expected_dim = 1536
             
+            # 强制删除旧集合并重新创建，确保维度与当前 Embedding 模型一致
+            current_dim = Settings.embed_model.embed_dim if hasattr(Settings.embed_model, 'embed_dim') else 768
             try:
-                chroma_collection = db.get_collection(collection_name)
-                # 如果集合已存在，检查其元数据中的维度
-                meta = chroma_collection.metadata
-                if meta and meta.get("embedding_function") == "mock":
-                    # 如果是之前的 Mock 1维集合，删除它以便重建
-                    if meta.get("dimension") != expected_dim:
-                        logger.warning(f"Dimension mismatch detected (expected {expected_dim}). Recreating collection.")
-                        db.delete_collection(collection_name)
-                        chroma_collection = db.create_collection(
-                            collection_name, 
-                            metadata={"hnsw:space": "cosine", "embedding_function": "mock", "dimension": expected_dim}
-                        )
-            except Exception:
-                # 集合不存在，直接创建
-                chroma_collection = db.create_collection(
-                    collection_name, 
-                    metadata={"hnsw:space": "cosine", "embedding_function": "mock", "dimension": expected_dim}
-                )
+                db.delete_collection(collection_name)
+            except:
+                pass
+            
+            chroma_collection = db.create_collection(
+                collection_name, 
+                metadata={"hnsw:space": "cosine", "dimension": current_dim}
+            )
+            logger.info(f"Created fresh collection '{collection_name}' with dimension {current_dim}")
 
             vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
             storage_context = StorageContext.from_defaults(vector_store=vector_store)
