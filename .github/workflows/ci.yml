@@ -29,6 +29,8 @@ jobs:
         uv venv .venv
         source .venv/bin/activate
         uv pip install -e ".[dev,rag]"
+        # Ensure linting tools are present
+        uv pip install flake8 pytest
 
     - name: Run Linting (Flake8)
       run: |
