@@ -2,36 +2,40 @@ name: EdgeBrain CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.9'
 
-    - name: Install dependencies
+    - name: Install uv
       run: |
-        python -m pip install --upgrade pip
-        if [ -f pyproject.toml ]; then pip install .; fi
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-    - name: Run Core Tests
+    - name: Create virtual environment and install dependencies
       run: |
-        # 验证核心模块导入与基础逻辑
-        python -c "from src.edgebrain.core.engine import EdgeBrainEngine; print('Engine module loaded successfully')"
-        python -c "from src.edgebrain.skills.loader import SkillLoader; print('Skill loader module loaded successfully')"
-        python -c "from src.edgebrain.security.gateway import SecurityGateway; print('Security gateway module loaded successfully')"
+        uv venv .venv
+        source .venv/bin/activate
+        uv pip install -e ".[dev,rag]"
 
-    - name: Check Code Style (Optional)
+    - name: Run Linting (Flake8)
       run: |
-        pip install flake8
-        # 停止构建如果存在语法错误或未定义的名称
-        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        source .venv/bin/activate
+        flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: Run Unit Tests
+      run: |
+        source .venv/bin/activate
+        pytest tests/ -v --tb=short
