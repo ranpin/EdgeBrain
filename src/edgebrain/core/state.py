@@ -33,6 +33,10 @@ class AgentState(TypedDict):
     # VLM Analysis results
     vlm_output: Optional[str]
     
+    # Screen Awareness results
+    screen_analysis: Optional[str]
+    last_screenshot_path: Optional[str]
+    
     # System status
     current_node: str
     error_message: Optional[str]
@@ -44,3 +48,6 @@ class AgentState(TypedDict):
     # Planning & Routing fields
     next_action: Optional[str]  # "execute", "retrieve", "respond"
     target_skill: Optional[str]  # ID of the skill to execute
+    
+    # Self-healing fields
+    retry_count: int

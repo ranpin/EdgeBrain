@@ -8,6 +8,8 @@ from .state import AgentState
 from .config import settings
 from .rag_node import RAGNode
 from .vlm_node import VLMNode
+from .screen_awareness_node import ScreenAwarenessNode
+from .self_healing_node import SelfHealingNode
 from ..skills.loader import SkillLoader
 from ..security.gateway import SecurityGateway
 
@@ -17,6 +19,8 @@ class EdgeBrainEngine:
         self.security_gateway = SecurityGateway()
         self.rag_node = RAGNode(data_dir=os.path.join(settings.project_root, "data", "knowledge_base"))
         self.vlm_node = VLMNode()
+        self.screen_node = ScreenAwarenessNode()
+        self.healing_node = SelfHealingNode()
         self.graph = self._build_graph()
         logger.info("EdgeBrain Engine initialized with RAG, VLM and Declarative Skills.")
 
@@ -77,6 +81,11 @@ class EdgeBrainEngine:
         logger.info("VLM node executed.")
         return self.vlm_node.analyze(state)
 
+    def _screen_awareness_node(self, state: AgentState) -> dict:
+        """屏幕感知节点：截图并分析 UI"""
+        logger.info("Screen Awareness node executed.")
+        return self.screen_node.execute(state)
+
     def _respond_node(self, state: AgentState) -> dict:
         """响应节点：生成最终回复"""
         logger.info("Response node executed.")
@@ -88,11 +97,25 @@ class EdgeBrainEngine:
         
         return {"messages": [{"role": "assistant", "content": response_text}]}
 
-    def _route_logic(self, state: AgentState) -> Literal["retrieve", "execute", "respond", "vlm"]:
+    def _self_healing_node(self, state: AgentState) -> dict:
+        """自愈节点：分析错误并尝试修复"""
+        logger.info("Self-healing node executed.")
+        return self.healing_node.analyze_and_repair(state)
+
+    def _route_logic(self, state: AgentState) -> Literal["retrieve", "execute", "respond", "vlm", "screen", "self_heal"]:
         """路由逻辑"""
+        # 优先处理错误状态，触发自愈
+        if state.get("error_message"):
+            return "self_heal"
+
         # 优先处理多模态输入
         if state.get("image_path"):
             return "vlm"
+        
+        # 检查屏幕感知意图
+        last_msg = state['messages'][-1]['content'].lower()
+        if any(kw in last_msg for kw in ["屏幕", "截图", "分析当前界面", "screen", "screenshot"]):
+            return "screen"
         
         next_action = state.get('next_action', 'respond')
         logger.info(f"Routing decision: {next_action}")
@@ -110,6 +133,8 @@ class EdgeBrainEngine:
         workflow.add_node("retrieve", self._retrieve_node)
         workflow.add_node("execute", self._execute_node)
         workflow.add_node("vlm", self._vlm_node)
+        workflow.add_node("screen", self._screen_awareness_node)
+        workflow.add_node("self_heal", self._self_healing_node)
         workflow.add_node("respond", self._respond_node)
         
         workflow.set_entry_point("plan")
@@ -117,6 +142,8 @@ class EdgeBrainEngine:
         workflow.add_edge("retrieve", "respond")
         workflow.add_edge("execute", "respond")
         workflow.add_edge("vlm", "respond")
+        workflow.add_edge("screen", "respond")
+        workflow.add_edge("self_heal", "plan")  # 自愈后重新规划
         
         return workflow.compile()
 

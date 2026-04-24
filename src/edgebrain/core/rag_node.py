@@ -21,7 +21,6 @@ class RAGNode:
     def __init__(self, data_dir: str = KNOWLEDGE_BASE_DIR, persist_dir: str = CHROMA_PERSIST_DIR):
         self.data_dir = data_dir
         self.persist_dir = persist_dir
-        self.model_name = model_name
         self.index = None
         self._init_chroma()
 
