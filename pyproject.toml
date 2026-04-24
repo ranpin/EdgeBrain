@@ -58,6 +58,10 @@ dependencies = [
     
     # --- MCP (Model Context Protocol) Support ---
     "mcp==1.1.0",
+    
+    # --- API & Streaming (SSE) ---
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
 ]
 
 [project.optional-dependencies]
