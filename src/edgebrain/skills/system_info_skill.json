@@ -1,0 +1,10 @@
+{
+    "id": "sys_info_v1",
+    "name": "System Information Query",
+    "description": "Retrieve basic system metrics such as CPU usage, memory status, and OS version.",
+    "version": "1.0.0",
+    "trigger_keywords": ["system status", "cpu usage", "memory", "os version", "系统状态"],
+    "permission_level": "READ",
+    "handler_module": "edgebrain.skills.handlers.sys_info_handler",
+    "handler_function": "get_system_metrics"
+}
